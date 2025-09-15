@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Manual WhatsApp Messaging System</title>
+  
+  <!-- Tailwind CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+    
+    .card-hover {
+      transition: all 0.3s ease;
+    }
+    
+    .card-hover:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+    
+    .animate-fade-in {
+      animation: fadeIn 0.5s ease-in;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .status-indicator {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+
+    .status-indicator.connected {
+      background-color: #10b981;
+      animation: pulse-green 2s infinite;
+    }
+
+    .status-indicator.disconnected {
+      background-color: #ef4444;
+    }
+
+    .status-indicator.loading {
+      background-color: #f59e0b;
+      animation: pulse-orange 1s infinite;
+    }
+
+    @keyframes pulse-green {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    @keyframes pulse-orange {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .loading-spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #ffffff;
+      border-radius: 50%;
+      border-top-color: transparent;
+      animation: spin 1s ease-in-out infinite;
+      margin-right: 8px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      max-width: 400px;
+      transform: translateX(100%);
+      transition: transform 0.3s ease;
+    }
+
+    .notification.show {
+      transform: translateX(0);
+    }
+
+    /* ✅ FIXED: Stats cards with black text */
+    .stats-card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      transition: all 0.3s ease;
+      color: #000000 !important; /* Force black text */
+    }
+
+    .stats-card:hover {
+      background: rgba(255, 255, 255, 1);
+      transform: translateY(-2px);
+    }
+
+    /* ✅ FIXED: Ensure all text inside stats cards is black */
+    .stats-card * {
+      color: #000000 !important;
+    }
+
+    /* ✅ FIXED: FontAwesome icons in stats cards */
+    .stats-card i {
+      color: #000000 !important;
+    }
+
+    .quick-action-card {
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .quick-action-card:hover {
+      transform: scale(1.02);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .slide-in {
+      animation: slideIn 0.3s ease-out;
+    }
+    
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .tooltip {
+      position: relative;
+      cursor: help;
+    }
+
+    .tooltip::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      white-space: nowrap;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s;
+      z-index: 1000;
+    }
+
+    .tooltip:hover::after {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .scrollable-list {
+      max-height: 400px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: #cbd5e0 #f7fafc;
+    }
+
+    .scrollable-list::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .scrollable-list::-webkit-scrollbar-track {
+      background: #f7fafc;
+      border-radius: 4px;
+    }
+
+    .scrollable-list::-webkit-scrollbar-thumb {
+      background: #cbd5e0;
+      border-radius: 4px;
+    }
+
+    .scrollable-list::-webkit-scrollbar-thumb:hover {
+      background: #a0aec0;
+    }
+
+    .student-card {
+      transition: all 0.2s ease;
+    }
+
+    .student-card:hover {
+      background-color: #f8fafc;
+      transform: translateX(4px);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="min-h-screen py-8 px-4">
+    <div class="max-w-7xl mx-auto">
+      
+      <!-- Header -->
+      <div class="text-center mb-12 animate-fade-in">
+        <!-- Back Button -->
+        <div class="flex justify-start mb-6">
+          <a href="index.html" class="inline-flex items-center px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-all duration-200 hover:scale-105 backdrop-blur-sm border border-white/20">
+            <i class="fas fa-arrow-left mr-2"></i>
+            <span class="font-medium">Back to Dashboard</span>
+          </a>
+        </div>
+      
+        <div class="inline-flex items-center justify-center w-20 h-20 bg-white rounded-full shadow-lg mb-6">
+          <i class="fas fa-paper-plane text-3xl text-purple-600"></i>
+        </div>
+        <h1 class="text-4xl font-bold text-white mb-4">Manual WhatsApp Messaging System</h1>
+        <p class="text-xl text-purple-100 max-w-3xl mx-auto">
+          Send consolidated absence notifications to parents on-demand using WhatsApp Cloud API
+        </p>
+
+        <!-- System Status -->
+        <div class="mt-6 inline-flex items-center bg-white bg-opacity-20 rounded-lg px-4 py-2">
+          <span class="status-indicator" id="systemStatus"></span>
+          <span class="text-white text-sm" id="systemStatusText">Checking system status...</span>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 animate-fade-in">
+        
+        <div class="quick-action-card bg-white rounded-2xl p-6 text-center shadow-lg" onclick="setTodayDate()">
+          <div class="text-3xl text-blue-600 mb-4">
+            <i class="fas fa-calendar-day"></i>
+          </div>
+          <h3 class="font-bold text-gray-800 mb-2">Today's Messages</h3>
+          <p class="text-sm text-gray-600">Set date to today</p>
+          <div class="text-xs text-gray-500 mt-2">Ctrl+1</div>
+        </div>
+        
+        <div class="quick-action-card bg-white rounded-2xl p-6 text-center shadow-lg" onclick="setYesterdayDate()">
+          <div class="text-3xl text-orange-600 mb-4">
+            <i class="fas fa-calendar-minus"></i>
+          </div>
+          <h3 class="font-bold text-gray-800 mb-2">Yesterday's Messages</h3>
+          <p class="text-sm text-gray-600">Set date to yesterday</p>
+          <div class="text-xs text-gray-500 mt-2">Ctrl+2</div>
+        </div>
+        
+        <div class="quick-action-card bg-white rounded-2xl p-6 text-center shadow-lg" onclick="clearForm()">
+          <div class="text-3xl text-gray-600 mb-4">
+            <i class="fas fa-eraser"></i>
+          </div>
+          <h3 class="font-bold text-gray-800 mb-2">Clear Form</h3>
+          <p class="text-sm text-gray-600">Reset all selections</p>
+          <div class="text-xs text-gray-500 mt-2">Ctrl+R</div>
+        </div>
+        
+      </div>
+
+      <!-- Main Messaging Panel -->
+      <div class="bg-white rounded-2xl shadow-xl p-8 mb-8 card-hover animate-fade-in">
+        <div class="flex items-center mb-8">
+          <div class="w-12 h-12 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-full flex items-center justify-center font-bold text-lg mr-4">
+            <i class="fas fa-paper-plane"></i>
+          </div>
+          <div>
+            <h2 class="text-2xl font-bold text-gray-800 mb-2">Send WhatsApp Messages</h2>
+            <p class="text-gray-600">Select stream, semester, and date to send consolidated absence notifications</p>
+          </div>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+  
+          <!-- Academic Stream Selection -->
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-3">
+              <i class="fas fa-university mr-2 text-purple-600"></i>Academic Stream
+            </label>
+            <select id="messagingStream" onchange="validateForm()" class="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all text-lg">
+              <option value="">-- Select Stream --</option>
+              <option value="BCA">BCA - Computer Applications</option>
+              <option value="BBA">BBA - Business Administration</option>
+              <option value="BCOM">BCOM - Commerce (Section A)</option>
+              <option value="BCOM SECTION B">BCOM Section B - Commerce</option>
+              <option value="BCOM-BDA">BCOM-BDA - Big Data Analytics</option>
+              <option value="BCOM A AND F">BCOM A&F - Accounting & Finance</option>
+            </select>
+          </div>
+          
+          <!-- Semester Selection -->
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-3">
+              <i class="fas fa-layer-group mr-2 text-purple-600"></i>Semester
+            </label>
+            <select id="messagingSemester" onchange="validateForm()" class="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all text-lg">
+              <option value="">-- Select Semester --</option>
+              <option value="1">First Semester</option>
+              <option value="2">Second Semester</option>
+              <option value="3">Third Semester</option>
+              <option value="4">Fourth Semester</option>
+              <option value="5">Fifth Semester</option>
+              <option value="6">Sixth Semester</option>
+            </select>
+          </div>
+          
+          <!-- Date Selection -->
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-3">
+              <i class="fas fa-clock mr-2 text-purple-600"></i>Date
+            </label>
+            <input type="date" id="messagingDate" onchange="validateForm()" class="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all text-lg">
+          </div>
+          
+          <!-- Preview Button -->
+          <div class="flex items-end">
+            <button onclick="previewMessages()" id="previewBtn" class="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-4 rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-300 font-semibold text-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed tooltip" data-tooltip="Ctrl+P" disabled>
+              <i class="fas fa-eye mr-2"></i>Preview
+            </button>
+          </div>
+        </div>
+        
+        <!-- Send Button -->
+        <div class="text-center">
+          <button onclick="sendMessages()" id="sendBtn" class="bg-gradient-to-r from-green-500 to-green-600 text-white px-12 py-4 rounded-xl hover:from-green-600 hover:to-green-700 transition-all duration-300 font-semibold text-xl shadow-lg disabled:opacity-50 disabled:cursor-not-allowed tooltip" data-tooltip="Ctrl+S" disabled>
+            <i class="fas fa-paper-plane mr-3"></i>Send WhatsApp Messages Now
+          </button>
+        </div>
+
+        <!-- WhatsApp Status -->
+        <div class="mt-6 text-center">
+          <div class="inline-flex items-center bg-green-50 text-green-700 px-4 py-2 rounded-lg text-sm">
+            <i class="fas fa-whatsapp mr-2"></i>
+            <span>WhatsApp Cloud API • Free for first 1000 messages/month</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Results Section -->
+      <div id="resultsSection" class="hidden animate-fade-in">
+        
+        <!-- Statistics Cards -->
+        <div id="statsCards" class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <!-- Stats will be loaded here -->
+        </div>
+
+        <!-- Main Results -->
+        <div id="resultsContent" class="space-y-8">
+          <!-- Results will be displayed here -->
+        </div>
+        
+      </div>
+
+      <!-- Footer -->
+      <div class="text-center mt-16 text-white animate-fade-in">
+        <p class="text-lg opacity-75">© 2025 MLA ACADEMY OF HIGHER LEARNING</p>
+        <p class="text-sm opacity-60 mt-2">Smart Attendance System • WhatsApp Cloud API Integration</p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Notification Container -->
+  <div id="notificationContainer" class="fixed top-4 right-4 z-50 space-y-2"></div>
+
+  <script>
+    // Global variables
+    let isLoading = false;
+    let currentPreviewData = null;
+    let systemConfig = {
+        maxRetries: 3,
+        retryDelay: 1000,
+        requestTimeout: 45000,
+        apiVersion: 'v19.0'
+    };
+
+    // ===== SYSTEM INITIALIZATION =====
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeSystem();
+    });
+
+    function initializeSystem() {
+        console.log('📱 Initializing Manual WhatsApp Messaging System...');
+        
+        setTodayDate();
+        checkServerConnection();
+        validateForm();
+        attachEventListeners();
+        checkWhatsAppStatus();
+        
+        console.log('✅ System initialized successfully');
+    }
+
+    function attachEventListeners() {
+        ['messagingStream', 'messagingSemester', 'messagingDate'].forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.addEventListener('change', validateForm);
+                element.addEventListener('input', validateForm);
+            }
+        });
+
+        document.addEventListener('keydown', handleKeyboardShortcuts);
+    }
+
+    // ===== WHATSAPP STATUS CHECK =====
+    async function checkWhatsAppStatus() {
+        try {
+            const response = await fetch('/api/whatsapp-status', {
+                headers: { 'Content-Type': 'application/json' }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log('📱 WhatsApp Status:', data);
+                
+                if (!data.configured) {
+                    showNotification('⚠️ WhatsApp Cloud API not configured', 'warning');
+                }
+            }
+        } catch (error) {
+            console.warn('Could not check WhatsApp status:', error);
+        }
+    }
+
+    // ===== SYSTEM STATUS MANAGEMENT =====
+    function updateSystemStatus(status, message) {
+        const indicator = document.getElementById('systemStatus');
+        const text = document.getElementById('systemStatusText');
+        
+        if (indicator && text) {
+            indicator.className = `status-indicator ${status}`;
+            text.textContent = message;
+        }
+    }
+
+    async function checkServerConnection() {
+        console.log('🔍 Checking server connection...');
+        updateSystemStatus('loading', 'Checking server connection...');
+        
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000);
+            
+            const response = await fetch('/api/daily-absence-summary/BCA/sem1/2025-01-01', {
+                method: 'HEAD',
+                cache: 'no-cache',
+                signal: controller.signal,
+                headers: { 'Content-Type': 'application/json' }
+            });
+            
+            clearTimeout(timeoutId);
+            
+            if (response.ok || response.status === 404) {
+                updateSystemStatus('connected', 'Server connected - WhatsApp Cloud API Ready');
+                showNotification('✅ Server connected successfully', 'success');
+                console.log('✅ Server connection successful');
+            } else {
+                throw new Error(`Server responded with status: ${response.status}`);
+            }
+            
+        } catch (error) {
+            console.error('❌ Server connection failed:', error);
+            
+            let errorMessage = 'Connection failed';
+            if (error.name === 'AbortError') {
+                errorMessage = 'Connection timeout';
+            } else if (error.message.includes('Failed to fetch')) {
+                errorMessage = 'Network error - Check connection';
+            } else {
+                errorMessage = `Server error: ${error.message}`;
+            }
+            
+            updateSystemStatus('disconnected', errorMessage);
+            showNotification(`❌ ${errorMessage}`, 'error');
+        }
+    }
+
+    // ===== FORM VALIDATION =====
+    function validateForm() {
+        const stream = document.getElementById('messagingStream')?.value;
+        const semester = document.getElementById('messagingSemester')?.value;
+        const date = document.getElementById('messagingDate')?.value;
+        
+        const previewBtn = document.getElementById('previewBtn');
+        const sendBtn = document.getElementById('sendBtn');
+        
+        const isValid = stream && semester && date;
+        
+        if (previewBtn) previewBtn.disabled = !isValid;
+        if (sendBtn) sendBtn.disabled = !isValid || !currentPreviewData;
+        
+        if (date) {
+            const selectedDate = new Date(date);
+            const today = new Date();
+            const diffDays = Math.ceil((today - selectedDate) / (1000 * 60 * 60 * 24));
+            
+            if (diffDays > 30) {
+                showNotification('⚠️ Selected date is more than 30 days old', 'warning');
+            } else if (diffDays < 0) {
+                showNotification('⚠️ Future dates not recommended', 'warning');
+            }
+        }
+        
+        return isValid ? { stream, semester, date } : null;
+    }
+
+    // ===== DATE MANAGEMENT =====
+    function setTodayDate() {
+        const today = new Date().toISOString().split('T')[0];
+        const dateInput = document.getElementById('messagingDate');
+        if (dateInput) {
+            dateInput.value = today;
+            validateForm();
+            showNotification('📅 Date set to today', 'info');
+        }
+    }
+
+    function setYesterdayDate() {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const dateInput = document.getElementById('messagingDate');
+        if (dateInput) {
+            dateInput.value = yesterday.toISOString().split('T')[0];
+            validateForm();
+            showNotification('📅 Date set to yesterday', 'info');
+        }
+    }
+
+    function clearForm() {
+        ['messagingStream', 'messagingSemester', 'messagingDate'].forEach(id => {
+            const element = document.getElementById(id);
+            if (element) element.value = '';
+        });
+        
+        const resultsSection = document.getElementById('resultsSection');
+        if (resultsSection) resultsSection.classList.add('hidden');
+        
+        currentPreviewData = null;
+        validateForm();
+        showNotification('🧹 Form cleared', 'info');
+    }
+
+    // ===== PREVIEW MESSAGES =====
+    async function previewMessages() {
+        const inputs = validateForm();
+        if (!inputs) {
+            showNotification('❌ Please fill in all required fields', 'error');
+            return;
+        }
+        
+        const { stream, semester, date } = inputs;
+        
+        if (isLoading) {
+            showNotification('⏳ Please wait for current operation to complete', 'warning');
+            return;
+        }
+        
+        isLoading = true;
+        
+        const previewBtn = document.getElementById('previewBtn');
+        const originalText = previewBtn?.innerHTML || 'Preview Messages';
+        
+        try {
+            if (previewBtn) {
+                previewBtn.innerHTML = '<div class="loading-spinner"></div>Loading Preview...';
+                previewBtn.disabled = true;
+            }
+            
+            updateSystemStatus('loading', 'Loading message preview...');
+            
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), systemConfig.requestTimeout);
+            
+            const response = await fetch(`/api/daily-absence-summary/${stream}/sem${semester}/${date}`, {
+                signal: controller.signal,
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            
+            clearTimeout(timeoutId);
+            
+            if (response.ok) {
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentPreviewData = data;
+                    displayPreview(data);
+                    updateSystemStatus('connected', 'Preview loaded successfully');
+                    
+                    if (data.messageStatus?.alreadySent) {
+                        showNotification('⚠️ Messages already sent for this date!', 'warning');
+                    } else {
+                        showNotification('✅ Preview loaded successfully', 'success');
+                    }
+                    
+                    const sendBtn = document.getElementById('sendBtn');
+                    if (sendBtn) sendBtn.disabled = false;
+                } else {
+                    throw new Error(data.message || 'Invalid response from server');
+                }
+            } else {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || `Server error: ${response.status}`);
+            }
+            
+        } catch (error) {
+            console.error('❌ Error loading preview:', error);
+            
+            let errorMessage = 'Failed to load preview';
+            if (error.name === 'AbortError') {
+                errorMessage = 'Request timeout - Please try again';
+            } else if (error.message.includes('No students found')) {
+                errorMessage = 'No students found for this stream and semester';
+            } else if (error.message.includes('No attendance records')) {
+                errorMessage = 'No attendance records found for this date';
+            } else {
+                errorMessage = error.message;
+            }
+            
+            updateSystemStatus('disconnected', 'Failed to load preview');
+            showNotification(`❌ ${errorMessage}`, 'error');
+            currentPreviewData = null;
+            
+        } finally {
+            if (previewBtn) {
+                previewBtn.innerHTML = originalText;
+                previewBtn.disabled = false;
+            }
+            isLoading = false;
+        }
+    }
+
+    // ===== ✅ FIXED: DISPLAY PREVIEW WITH BLACK TEXT AND FONTAWESOME ICONS =====
+    function displayPreview(data) {
+        const resultsSection = document.getElementById('resultsSection');
+        const statsCards = document.getElementById('statsCards');
+        const resultsContent = document.getElementById('resultsContent');
+        
+        if (!resultsSection || !statsCards || !resultsContent) {
+            console.error('❌ Required DOM elements not found for preview display');
+            return;
+        }
+        
+        resultsSection.classList.remove('hidden');
+        resultsSection.classList.add('slide-in');
+        
+        const messagesToSend = data.summary.studentsToNotify || 0;
+        const freeTierMessages = 1000;
+        const costPerMessage = 0.04;
+        const estimatedCost = messagesToSend <= freeTierMessages 
+            ? '₹0.00 (Free Tier)' 
+            : `₹${((messagesToSend - freeTierMessages) * costPerMessage).toFixed(2)}`;
+        
+        // ✅ FIXED: Statistics cards with BLACK TEXT and FontAwesome icons
+        statsCards.innerHTML = `
+            <div class="stats-card bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 text-center shadow-xl transform hover:scale-105 transition-all duration-300">
+                <div class="text-4xl font-bold mb-2 text-black">${data.summary.totalStudents || 0}</div>
+                <div class="text-sm opacity-90 text-black">Total Students</div>
+                <div class="mt-2">
+                    <i class="fas fa-users text-2xl opacity-75 text-black"></i>
+                </div>
+            </div>
+            
+            <div class="stats-card bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 text-center shadow-xl transform hover:scale-105 transition-all duration-300">
+                <div class="text-4xl font-bold mb-2 text-black">${messagesToSend || 0}</div>
+                <div class="text-sm opacity-90 text-black">Will Get Messages</div>
+                <div class="mt-2">
+                    <i class="fas fa-paper-plane text-2xl opacity-75 text-black"></i>
+                </div>
+            </div>
+            
+            <div class="stats-card bg-gradient-to-br from-red-500 to-red-600 rounded-2xl p-6 text-center shadow-xl transform hover:scale-105 transition-all duration-300">
+                <div class="text-4xl font-bold mb-2 text-black">${data.summary.fullDayAbsent || 0}</div>
+                <div class="text-sm opacity-90 text-black">Full Day Absent</div>
+                <div class="mt-2">
+                    <i class="fas fa-exclamation-triangle text-2xl opacity-75 text-black"></i>
+                </div>
+            </div>
+            
+            <div class="stats-card bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-6 text-center shadow-xl transform hover:scale-105 transition-all duration-300">
+                <div class="text-4xl font-bold mb-2 text-black">${estimatedCost}</div>
+                <div class="text-sm opacity-90 text-black">Estimated Cost</div>
+                <div class="mt-2">
+                    <i class="fas fa-dollar-sign text-2xl opacity-75 text-black"></i>
+                </div>
+            </div>
+        `;
+        
+        // Preview content display
+        if (messagesToSend > 0) {
+            displayStudentsPreview(data, resultsContent, estimatedCost);
+        } else {
+            displayPerfectAttendance(data, resultsContent);
+        }
+    }
+
+    function displayStudentsPreview(data, resultsContent, estimatedCost) {
+        const studentsToShow = (data.absenceSummary || []).filter(s => s.willReceiveMessage);
+        
+        resultsContent.innerHTML = `
+            <div class="bg-white rounded-2xl shadow-2xl p-8 border border-gray-100">
+                <div class="flex items-center justify-between mb-6">
+                    <h4 class="text-2xl font-bold text-gray-800 flex items-center">
+                        <i class="fas fa-eye mr-3 text-blue-600"></i>
+                        Message Preview for ${data.date}
+                    </h4>
+                    <div class="flex items-center space-x-2 text-sm text-gray-500">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>${data.stream} • Semester ${data.semester}</span>
+                    </div>
+                </div>
+                
+                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 mb-8">
+                    <h5 class="font-bold text-blue-800 mb-4 flex items-center">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        Attendance Summary
+                    </h5>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-white bg-opacity-70 rounded-lg p-4">
+                            <div class="text-blue-700 space-y-2">
+                                <div class="flex justify-between">
+                                    <span class="font-medium">📚 Subjects with attendance:</span>
+                                    <span class="font-semibold">${(data.subjectsWithAttendance || []).length}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-white bg-opacity-70 rounded-lg p-4">
+                            <div class="text-blue-700 space-y-2">
+                                <div class="flex justify-between">
+                                    <span class="font-medium">📱 Messages to send:</span>
+                                    <span class="font-semibold">${data.summary.studentsToNotify || 0}</span>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span>🔴 Full day: ${data.summary.fullDayAbsent || 0}</span>
+                                    <span>🟡 Partial: ${data.summary.partialDayAbsent || 0}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-8 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-6">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mr-4">
+                                <i class="fas fa-check-circle text-green-600 text-xl"></i>
+                            </div>
+                            <div>
+                                <p class="text-green-800 font-bold text-lg">Ready to Send Messages</p>
+                                <p class="text-green-600 text-sm">${data.summary.studentsToNotify || 0} WhatsApp messages via Cloud API</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-2xl font-bold text-green-700">${data.summary.studentsToNotify || 0}</div>
+                            <div class="text-xs text-green-600">Messages</div>
+                            <div class="text-xs text-gray-500 mt-1">Cost: ${estimatedCost}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function displayPerfectAttendance(data, resultsContent) {
+        resultsContent.innerHTML = `
+            <div class="bg-white rounded-2xl shadow-2xl p-8 text-center border border-gray-100">
+                <div class="mb-8">
+                    <div class="w-24 h-24 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
+                        <i class="fas fa-trophy text-white text-4xl"></i>
+                    </div>
+                    <h4 class="text-3xl font-bold text-gray-800 mb-4">🎉 Perfect Attendance!</h4>
+                    <p class="text-xl text-gray-600 mb-2">
+                        All students were present on ${data.date}
+                    </p>
+                    <p class="text-lg text-green-600 font-semibold">
+                        No absence messages needed today!
+                    </p>
+                </div>
+            </div>
+        `;
+    }
+
+    // ===== SEND MESSAGES =====
+    async function sendMessages() {
+        const inputs = validateForm();
+        if (!inputs) {
+            showNotification('❌ Please fill in all required fields', 'error');
+            return;
+        }
+        
+        if (!currentPreviewData) {
+            showNotification('❌ Please preview messages first', 'error');
+            return;
+        }
+        
+        const { stream, semester, date } = inputs;
+        
+        if (isLoading) {
+            showNotification('⏳ Please wait for current operation to complete', 'warning');
+            return;
+        }
+        
+        isLoading = true;
+        
+        const sendBtn = document.getElementById('sendBtn');
+        const originalText = sendBtn?.innerHTML || 'Send Messages';
+        
+        try {
+            if (sendBtn) {
+                sendBtn.innerHTML = '<div class="loading-spinner"></div>Sending messages...';
+                sendBtn.disabled = true;
+            }
+            
+            updateSystemStatus('loading', 'Sending WhatsApp messages via Cloud API...');
+            
+            const response = await fetch(`/api/send-absence-messages/${stream}/sem${semester}/${date}`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    forceResend: false,
+                    source: 'manual_trigger',
+                    timestamp: new Date().toISOString(),
+                    provider: 'WhatsApp Cloud API'
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok) {
+                updateSystemStatus('connected', 'Messages sent successfully');
+                showNotification(`✅ Successfully sent ${result.summary?.messagesSent || 0} messages!`, 'success');
+                
+                setTimeout(() => previewMessages(), 2000);
+            } else {
+                throw new Error(result.message || `Server error: ${response.status}`);
+            }
+            
+        } catch (error) {
+            console.error('❌ Error sending messages:', error);
+            updateSystemStatus('disconnected', 'Failed to send messages');
+            showNotification(`❌ ${error.message}`, 'error');
+            
+        } finally {
+            if (sendBtn) {
+                sendBtn.innerHTML = originalText;
+                sendBtn.disabled = false;
+            }
+            isLoading = false;
+        }
+    }
+
+    // ===== UTILITY FUNCTIONS =====
+    function showNotification(message, type = 'info') {
+        const container = document.getElementById('notificationContainer');
+        
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        
+        const typeIcons = {
+            success: 'fas fa-check-circle',
+            error: 'fas fa-exclamation-triangle',
+            warning: 'fas fa-exclamation-circle',
+            info: 'fas fa-info-circle'
+        };
+        
+        const typeColors = {
+            success: 'bg-green-500',
+            error: 'bg-red-500',
+            warning: 'bg-yellow-500',
+            info: 'bg-blue-500'
+        };
+        
+        notification.innerHTML = `
+            <div class="${typeColors[type]} text-white px-6 py-4 rounded-lg shadow-lg flex items-center space-x-3 min-w-[300px] max-w-[500px]">
+                <i class="${typeIcons[type]} text-lg"></i>
+                <span class="flex-1 text-sm font-medium">${message}</span>
+                <button onclick="this.closest('.notification').remove()" class="text-white hover:text-gray-200 ml-4">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        
+        container.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.classList.add('show');
+        }, 100);
+        
+        setTimeout(() => {
+            if (notification.parentElement) {
+                notification.classList.remove('show');
+                setTimeout(() => notification.remove(), 300);
+            }
+        }, 5000);
+    }
+
+    function handleKeyboardShortcuts(e) {
+        if (e.ctrlKey) {
+            switch (e.key) {
+                case 'p':
+                    e.preventDefault();
+                    if (!isLoading) previewMessages();
+                    break;
+                case 's':
+                    e.preventDefault();
+                    if (!isLoading && currentPreviewData) sendMessages();
+                    break;
+                case 'r':
+                    e.preventDefault();
+                    clearForm();
+                    break;
+                case '1':
+                    e.preventDefault();
+                    setTodayDate();
+                    break;
+                case '2':
+                    e.preventDefault();
+                    setYesterdayDate();
+                    break;
+            }
+        }
+        
+        if (e.key === 'Escape') {
+            const modals = document.querySelectorAll('.fixed.inset-0');
+            modals.forEach(modal => modal.remove());
+        }
+    }
+
+    // ===== ERROR HANDLERS =====
+    window.addEventListener('error', function(event) {
+        console.error('Global error caught:', event.error);
+        showNotification('❌ An unexpected error occurred. Please refresh the page.', 'error');
+    });
+
+    window.addEventListener('unhandledrejection', function(event) {
+        console.error('Unhandled promise rejection:', event.reason);
+        showNotification('❌ Network or server error occurred. Please try again.', 'error');
+    });
+
+    console.log('📱 WhatsApp Messaging System Script Loaded Successfully');
+  </script>
+
+</body>
+</html>

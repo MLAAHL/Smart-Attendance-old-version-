@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Class Queue - Teacher Panel</title>
+  
+  <!-- Tailwind CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+  <style>
+    * {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(125deg, #fcf6ff 0%, #fcf3f5 95%);
+      min-height: 100vh;
+      position: relative;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: 
+        radial-gradient(circle at 20% 50%, rgba(156, 136, 255, 0.08), transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.08), transparent 50%),
+        radial-gradient(circle at 40% 80%, rgba(120, 219, 255, 0.08), transparent 50%);
+      pointer-events: none;
+      z-index: -1;
+    }
+    
+    .glass-card {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+    }
+
+    .glass-header {
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transform: translateY(0);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.9);
+      border: 2px solid rgba(102, 126, 234, 0.3);
+      transition: all 0.3s ease;
+      backdrop-filter: blur(10px);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(102, 126, 234, 0.1);
+      border-color: rgba(102, 126, 234, 0.6);
+      transform: translateY(-1px);
+    }
+    
+    .loading-spinner {
+      border: 3px solid rgba(102, 126, 234, 0.2);
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .queue-item {
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      transform: translateY(0);
+    }
+    
+    .queue-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+    }
+    
+    .queue-item.removing {
+      transform: translateX(100%) scale(0.8);
+      opacity: 0;
+    }
+
+    .form-input {
+      transition: all 0.3s ease;
+      border: 2px solid rgba(102, 126, 234, 0.2);
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(10px);
+    }
+
+    .form-input:focus {
+      border-color: #667eea;
+      box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+      outline: none;
+      transform: translateY(-1px);
+    }
+
+    .back-button {
+      transition: all 0.3s ease;
+    }
+
+    .back-button:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: translateX(-3px);
+    }
+
+    .pulse-animation {
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+
+    .slide-in {
+      animation: slideIn 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .floating-badge {
+      animation: float 3s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-5px); }
+    }
+
+    /* Stream container hover effects */
+    .stream-container {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .stream-container:hover {
+      transform: translateY(-2px) scale(1.02);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Modern scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      border-radius: 10px;
+    }
+
+    /* Mobile optimizations */
+    @media (max-width: 640px) {
+      .mobile-only { display: block !important; }
+      .desktop-only { display: none !important; }
+    }
+
+    @media (min-width: 641px) {
+      .mobile-only { display: none !important; }
+      .desktop-only { display: block !important; }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Compact Mobile Header -->
+  <header class="glass-header sticky top-0 z-50 mx-3 mt-3 rounded-xl">
+    <div class="flex items-center justify-between p-3">
+      <!-- Back Button -->
+      <a href="index.html" id="backButtonHome" class="back-button w-10 h-10 rounded-lg flex items-center justify-center text-gray-700">
+        <i class="fas fa-arrow-left"></i>
+      </a>
+
+      <!-- Back Button for Form -->
+      <button id="backButtonForm" onclick="showHomePage()" class="back-button w-10 h-10 rounded-lg flex items-center justify-center text-gray-700 hidden">
+        <i class="fas fa-arrow-left"></i>
+      </button>
+
+      <!-- Compact Logo & Title -->
+      <div class="flex items-center space-x-2">
+        <div class="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
+          <i class="fas fa-list-ol text-white"></i>
+        </div>
+        <div>
+          <h1 class="text-base font-bold text-gray-800">smart classes</h1>
+          <p class="text-xs text-gray-600">Teacher Panel</p>
+        </div>
+      </div>
+
+      <!-- Compact User Avatar -->
+      <div class="relative">
+        <div class="w-10 h-10 bg-gradient-to-br from-pink-400 to-purple-600 rounded-lg flex items-center justify-center">
+          <i class="fas fa-user-graduate text-white text-sm"></i>
+        </div>
+        <div class="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white pulse-animation"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Compact Main Content -->
+  <main class="px-3 pb-6 max-w-md mx-auto">
+    <!-- Home Page -->
+    <div id="homePage" class="slide-in">
+      
+      <!-- Compact Status Card -->
+      <div class="glass-card rounded-2xl p-4 mb-4 mt-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-lg font-bold text-gray-800 mb-1">Class Status</h2>
+            <p class="text-sm text-gray-500">Active classes</p>
+          </div>
+          <div class="text-center">
+            <div class="w-12 h-12 bg-gradient-to-br from-blue-400 to-purple-600 rounded-xl flex items-center justify-center mb-1 floating-badge">
+              <span class="text-lg font-bold text-white" id="queueCount">0</span>
+            </div>
+            <p class="text-xs text-gray-500 font-medium">Classes</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Compact Empty State -->
+      <div id="emptyQueuePrompt" class="text-center py-8 slide-in">
+        <div class="w-16 h-16 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <i class="fas fa-plus text-2xl bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent"></i>
+        </div>
+        <h2 class="text-xl font-bold text-gray-800 mb-2">Start Your Class</h2>
+        <p class="text-gray-600 mb-6 leading-relaxed">Add your first class to begin managing attendance</p>
+        <button onclick="showAddClassForm()" class="btn-primary text-white px-6 py-3 rounded-xl font-semibold shadow-xl">
+          <i class="fas fa-plus mr-2"></i>
+          Add First Class
+        </button>
+      </div>
+
+      <!-- Compact Queue Section -->
+      <div id="queueSection" class="hidden slide-in">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h2 class="text-lg font-bold text-gray-800">Your Queue</h2>
+            <p class="text-sm text-gray-600">Ready for attendance</p>
+          </div>
+          <button onclick="showAddClassForm()" class="btn-secondary text-indigo-700 px-4 py-2 rounded-lg font-medium text-sm">
+            <i class="fas fa-plus mr-1"></i>Add
+          </button>
+        </div>
+
+        <div id="queueList" class="space-y-3 mb-6">
+          <!-- Queue items populated by JavaScript -->
+        </div>
+      </div>
+
+      <!-- Compact Completed Section -->
+      <div id="completedSection" class="hidden slide-in">
+        <div class="glass-card rounded-2xl p-4">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center">
+              <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                <i class="fas fa-check text-green-600"></i>
+              </div>
+              <div>
+                <h3 class="text-base font-bold text-gray-800">Completed Today</h3>
+                <p class="text-xs text-gray-500">Successfully processed</p>
+              </div>
+            </div>
+            <span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-bold floating-badge" id="completedBadge">0</span>
+          </div>
+          <div id="completedList" class="space-y-3">
+            <!-- Completed items populated by JavaScript -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Enhanced Add Class Form with Stream Containers -->
+    <div id="addClassPage" class="hidden slide-in">
+      <div class="glass-card rounded-2xl p-4 mt-4">
+        <div class="text-center mb-6">
+          <div class="w-12 h-12 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+            <i class="fas fa-plus text-lg bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent"></i>
+          </div>
+          <h2 class="text-lg font-bold text-gray-800 mb-1">Add New Class</h2>
+          <p class="text-sm text-gray-500">Select class details for your queue</p>
+        </div>
+
+        <form id="addClassForm" class="space-y-4">
+          <!-- Enhanced Stream Selection with Visual Cards -->
+          <div>
+            <label class="block text-sm font-bold text-gray-700 mb-3">
+              <i class="fas fa-graduation-cap text-indigo-600 mr-2"></i>
+              Academic Stream
+            </label>
+            <div id="streamContainer" class="space-y-2">
+              <!-- Stream cards will be populated by JavaScript -->
+            </div>
+            <input type="hidden" id="selectedStream" required>
+          </div>
+
+          <!-- Semester Selection -->
+          <div>
+            <label class="block text-sm font-bold text-gray-700 mb-2">
+              <i class="fas fa-calendar-alt text-indigo-600 mr-2"></i>
+              Semester
+            </label>
+            <select id="semester" required class="w-full px-3 py-3 form-input rounded-xl text-gray-800 font-medium">
+              <option value="">Select semester</option>
+              <option value="1">Semester 1</option>
+              <option value="2">Semester 2</option>
+              <option value="3">Semester 3</option>
+              <option value="4">Semester 4</option>
+              <option value="5">Semester 5</option>
+              <option value="6">Semester 6</option>
+            </select>
+          </div>
+
+          <!-- Subject Selection -->
+          <div>
+            <label class="block text-sm font-bold text-gray-700 mb-2">
+              <i class="fas fa-book-open text-indigo-600 mr-2"></i>
+              Subject
+            </label>
+            <div class="relative">
+              <select id="subject" required class="w-full px-3 py-3 form-input rounded-xl text-gray-800 font-medium" disabled>
+                <option value="">Select stream & semester first</option>
+              </select>
+              <div id="subjectLoader" class="hidden absolute right-3 top-1/2 transform -translate-y-1/2">
+                <div class="loading-spinner"></div>
+              </div>
+            </div>
+            <p id="subjectHelp" class="text-xs text-gray-500 mt-1 ml-1">Choose stream and semester to load subjects</p>
+          </div>
+
+          <!-- Submit Button -->
+          <button type="submit" id="addBtn" class="w-full btn-primary text-white px-6 py-3 rounded-xl font-bold shadow-xl disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+            <i class="fas fa-plus mr-2"></i>
+            Add to Queue
+          </button>
+        </form>
+      </div>
+
+      <!-- Compact Info Card -->
+      <div class="glass-card rounded-2xl p-4 mt-4 border-l-4 border-blue-400">
+        <div class="flex items-start">
+          <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3 mt-1">
+            <i class="fas fa-lightbulb text-blue-600"></i>
+          </div>
+          <div>
+            <h4 class="font-bold text-gray-800 mb-2">How it works</h4>
+            <ul class="space-y-2 text-gray-600 text-sm">
+              <li class="flex items-center">
+                <div class="w-1.5 h-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full mr-2"></div>
+                <span>Classes are added to your queue</span>
+              </li>
+              <li class="flex items-center">
+                <div class="w-1.5 h-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full mr-2"></div>
+                <span>Take attendance to complete them</span>
+              </li>
+              <li class="flex items-center">
+                <div class="w-1.5 h-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full mr-2"></div>
+                <span>Queue resets daily</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // Enhanced streams configuration based on your structure
+    const streams = [
+      {
+        name: "BCA",
+        icon: '<i class="fas fa-laptop-code text-indigo-500"></i>',
+        color: "bg-indigo-100",
+        textColor: "text-indigo-600",
+        borderColor: "border-indigo-500"
+      },
+      {
+        name: "BBA",
+        icon: '<i class="fas fa-chart-line text-green-500"></i>',
+        color: "bg-green-100",
+        textColor: "text-green-600",
+        borderColor: "border-green-500"
+      },
+      {
+        name: "BCom",
+        displayName: "BCom",
+        icon: '<i class="fas fa-money-bill-wave text-yellow-500"></i>',
+        color: "bg-yellow-100",
+        textColor: "text-yellow-600",
+        borderColor: "border-yellow-500"
+      },
+      {
+        name: "BCom Section B",
+        displayName: "BCom B",
+        icon: '<i class="fas fa-money-bill-wave text-orange-500"></i>',
+        color: "bg-purple-100",
+        textColor: "text-purple-600",
+        borderColor: "border-purple-500",
+        limitedSemesters: [5, 6]
+      },
+      {
+        name: "BCom-BDA",
+        displayName: "BDA",
+        icon: '<i class="fas fa-chart-bar text-purple-500"></i>',
+        color: "bg-purple-100",
+        textColor: "text-purple-600",
+        borderColor: "border-purple-500"
+      },
+      {
+        name: "BCom A and F",
+        icon: '<i class="fas fa-calculator text-blue-500"></i>',
+        color: "bg-blue-100",
+        textColor: "text-blue-600",
+        borderColor: "border-blue-500"
+      }
+    ];
+
+    // Global variables
+    let attendanceQueue = [];
+    let completedToday = [];
+    let selectedStreamData = null;
+    let userData = {
+      userName: localStorage.getItem('userName') || 'Teacher',
+      userEmail: localStorage.getItem('userEmail') || 'teacher@school.edu'
+    };
+
+    // API base URL
+    const API_BASE_URL = '/api';
+
+    // DOM Elements
+    const elements = {
+      homePage: document.getElementById('homePage'),
+      addClassPage: document.getElementById('addClassPage'),
+      backButtonHome: document.getElementById('backButtonHome'),
+      backButtonForm: document.getElementById('backButtonForm'),
+      streamContainer: document.getElementById('streamContainer'),
+      selectedStream: document.getElementById('selectedStream'),
+      semesterSelect: document.getElementById('semester'),
+      subjectSelect: document.getElementById('subject'),
+      subjectLoader: document.getElementById('subjectLoader'),
+      subjectHelp: document.getElementById('subjectHelp'),
+      addBtn: document.getElementById('addBtn')
+    };
+
+    // Database API functions (same as before)
+    async function saveQueueToDatabase(queueData) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/queue`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          },
+          body: JSON.stringify({
+            teacherId: userData.userName,
+            queueData: queueData,
+            timestamp: new Date().toISOString()
+          })
+        });
+
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return await response.json();
+      } catch (error) {
+        console.error('Error saving to database:', error);
+        localStorage.setItem('attendanceQueue', JSON.stringify(queueData));
+        showNotification('Saved locally', 'warning');
+        return null;
+      }
+    }
+
+    async function loadQueueFromDatabase() {
+      try {
+        const response = await fetch(`${API_BASE_URL}/queue/${userData.userName}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          }
+        });
+
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const result = await response.json();
+        attendanceQueue = result.queueData || [];
+        completedToday = result.completedToday || [];
+        return result;
+      } catch (error) {
+        console.error('Error loading from database:', error);
+        attendanceQueue = JSON.parse(localStorage.getItem('attendanceQueue') || '[]');
+        completedToday = JSON.parse(localStorage.getItem('completedToday') || '[]');
+        return null;
+      }
+    }
+
+    async function deleteQueueItemFromDatabase(itemId) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/queue/item/${itemId}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          }
+        });
+
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return await response.json();
+      } catch (error) {
+        console.error('Error deleting from database:', error);
+        return null;
+      }
+    }
+
+    // Create stream selection cards
+    function createStreamCards() {
+      if (!elements.streamContainer) return;
+      
+      elements.streamContainer.innerHTML = streams.map(stream => `
+        <div class="stream-container glass-card rounded-xl p-3 cursor-pointer border-2 border-transparent hover:${stream.borderColor}" 
+             onclick="selectStream('${stream.name}')" 
+             data-stream="${stream.name}">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 ${stream.color} rounded-lg flex items-center justify-center">
+              ${stream.icon}
+            </div>
+            <div class="flex-1">
+              <h4 class="font-bold ${stream.textColor}">${stream.displayName || stream.name}</h4>
+              <p class="text-xs text-gray-500">${stream.limitedSemesters ? 'Sem ' + stream.limitedSemesters.join(', ') + ' only' : 'All semesters'}</p>
+            </div>
+            <div class="w-5 h-5 border-2 border-gray-300 rounded-full flex items-center justify-center">
+              <div class="w-3 h-3 ${stream.color} rounded-full opacity-0 transition-opacity" data-check="${stream.name}"></div>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Select stream function
+    function selectStream(streamName) {
+      // Remove previous selection
+      document.querySelectorAll('.stream-container').forEach(card => {
+        card.classList.remove('ring-2', 'ring-offset-2');
+        const streamData = streams.find(s => s.name === card.dataset.stream);
+        if (streamData) {
+          card.classList.remove(`ring-${streamData.borderColor.split('-')[1]}-500`);
+        }
+      });
+      
+      document.querySelectorAll('[data-check]').forEach(check => {
+        check.classList.add('opacity-0');
+      });
+
+      // Add selection to clicked card
+      const selectedCard = document.querySelector(`[data-stream="${streamName}"]`);
+      const streamData = streams.find(s => s.name === streamName);
+      
+      if (selectedCard && streamData) {
+        selectedCard.classList.add('ring-2', 'ring-offset-2', `ring-${streamData.borderColor.split('-')[1]}-500`);
+        document.querySelector(`[data-check="${streamName}"]`).classList.remove('opacity-0');
+      }
+
+      // Update selected stream
+      selectedStreamData = streamData;
+      elements.selectedStream.value = streamName;
+      
+      // Update semesters based on selection
+      updateSemesters();
+      
+      // Reset subject selection
+      elements.subjectSelect.innerHTML = '<option value="">Select semester first</option>';
+      elements.subjectSelect.disabled = true;
+      elements.addBtn.disabled = true;
+    }
+
+    // Update semester options based on stream selection
+    function updateSemesters() {
+      const semesterSelect = elements.semesterSelect;
+      
+      // Clear existing options
+      semesterSelect.innerHTML = '<option value="">Select semester</option>';
+      
+      if (selectedStreamData && selectedStreamData.limitedSemesters) {
+        // Add only limited semesters
+        selectedStreamData.limitedSemesters.forEach(sem => {
+          const option = document.createElement('option');
+          option.value = sem;
+          option.textContent = `Semester ${sem}`;
+          semesterSelect.appendChild(option);
+        });
+      } else {
+        // Add all semesters
+        for (let i = 1; i <= 6; i++) {
+          const option = document.createElement('option');
+          option.value = i;
+          option.textContent = `Semester ${i}`;
+          semesterSelect.appendChild(option);
+        }
+      }
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', async function() {
+      if (!localStorage.getItem('isAuthenticated')) {
+        window.location.href = 'auth.html';
+        return;
+      }
+
+      checkNewDay();
+      await loadQueueFromDatabase();
+      updateQueueDisplay();
+      createStreamCards();
+
+      if (elements.semesterSelect) elements.semesterSelect.addEventListener('change', onSemesterChange);
+      if (document.getElementById('addClassForm')) document.getElementById('addClassForm').addEventListener('submit', handleAddToQueue);
+    });
+
+    function checkNewDay() {
+      const today = new Date().toDateString();
+      const lastClear = localStorage.getItem('lastClearDate');
+      
+      if (lastClear !== today) {
+        completedToday = [];
+        localStorage.setItem('completedToday', JSON.stringify(completedToday));
+        localStorage.setItem('lastClearDate', today);
+      }
+    }
+
+    // Page navigation
+    function showHomePage() {
+      elements.homePage.classList.remove('hidden');
+      elements.addClassPage.classList.add('hidden');
+      elements.backButtonHome.classList.remove('hidden');
+      elements.backButtonForm.classList.add('hidden');
+      elements.homePage.classList.add('slide-in');
+    }
+
+    function showAddClassForm() {
+      elements.homePage.classList.add('hidden');
+      elements.addClassPage.classList.remove('hidden');
+      elements.backButtonHome.classList.add('hidden');
+      elements.backButtonForm.classList.remove('hidden');
+      elements.addClassPage.classList.add('slide-in');
+      resetForm();
+    }
+
+    function updateQueueDisplay() {
+      const queueSection = document.getElementById('queueSection');
+      const emptyQueuePrompt = document.getElementById('emptyQueuePrompt');
+      const queueList = document.getElementById('queueList');
+      const completedSection = document.getElementById('completedSection');
+      const completedList = document.getElementById('completedList');
+
+      document.getElementById('queueCount').textContent = attendanceQueue.length;
+      document.getElementById('completedBadge').textContent = completedToday.length;
+
+      if (attendanceQueue.length === 0) {
+        emptyQueuePrompt.classList.remove('hidden');
+        queueSection.classList.add('hidden');
+      } else {
+        emptyQueuePrompt.classList.add('hidden');
+        queueSection.classList.remove('hidden');
+        
+        queueList.innerHTML = attendanceQueue.map((item, index) => {
+          const streamData = streams.find(s => s.name === item.stream) || streams[0];
+          return `
+            <div class="queue-item glass-card rounded-2xl border-l-4 ${streamData.borderColor} p-4" data-id="${item.id}">
+              <div class="flex items-start justify-between mb-3">
+                <div class="flex items-start">
+                  <div class="w-8 h-8 bg-white bg-opacity-80 rounded-lg flex items-center justify-center mr-3">
+                    <span class="text-indigo-600 font-bold text-sm">${index + 1}</span>
+                  </div>
+                  <div class="flex-1">
+                    <div class="flex items-center mb-2">
+                      <div class="w-6 h-6 ${streamData.color} rounded mr-2 flex items-center justify-center">
+                        ${streamData.icon}
+                      </div>
+                      <h3 class="font-bold text-gray-800">${item.subject}</h3>
+                    </div>
+                    <div class="flex flex-wrap gap-1 mb-2">
+                      <span class="${streamData.color} ${streamData.textColor} px-2 py-1 rounded-lg text-xs font-semibold">${streamData.displayName || item.stream}</span>
+                      <span class="bg-gray-100 text-gray-700 px-2 py-1 rounded-lg text-xs font-semibold">Sem ${item.semester}</span>
+                    </div>
+                    <p class="text-gray-500 text-xs">Added: ${item.timeAdded}</p>
+                  </div>
+                </div>
+              </div>
+              <div class="flex space-x-2">
+                <button onclick="takeAttendance('${item.id}')" class="btn-primary text-white px-4 py-2 rounded-lg font-semibold text-sm flex-1">
+                  <i class="fas fa-clipboard-check mr-1"></i>Attend
+                </button>
+                <button onclick="removeFromQueue('${item.id}')" class="w-10 h-10 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg flex items-center justify-center transition-all duration-200">
+                  <i class="fas fa-times text-sm"></i>
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      if (completedToday.length > 0) {
+        completedSection.classList.remove('hidden');
+        completedList.innerHTML = completedToday.map(item => {
+          const streamData = streams.find(s => s.name === item.stream) || streams[0];
+          return `
+            <div class="bg-gradient-to-r from-green-50 to-green-100 border-l-4 border-green-500 rounded-lg p-3">
+              <div class="flex items-center">
+                <div class="w-8 h-8 bg-green-200 rounded-lg flex items-center justify-center mr-3">
+                  <i class="fas fa-check text-green-600 text-sm"></i>
+                </div>
+                <div class="flex-1">
+                  <div class="flex items-center mb-1">
+                    <div class="w-4 h-4 ${streamData.color} rounded mr-1 flex items-center justify-center">
+                      ${streamData.icon}
+                    </div>
+                    <h4 class="font-bold text-gray-800 text-sm">${item.subject}</h4>
+                  </div>
+                  <p class="text-xs text-gray-600 mb-1">${streamData.displayName || item.stream} • Sem ${item.semester}</p>
+                  <p class="text-xs text-green-600 font-semibold">Done: ${item.completedTime}</p>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } else {
+        completedSection.classList.add('hidden');
+      }
+    }
+
+    async function onSemesterChange() {
+      const semester = elements.semesterSelect?.value;
+      
+      if (!elements.subjectSelect || !selectedStreamData) return;
+      
+      elements.subjectSelect.innerHTML = '<option value="">-- Select Subject --</option>';
+      elements.subjectSelect.disabled = true;
+      elements.addBtn.disabled = true;
+      
+      if (!semester) {
+        elements.subjectSelect.innerHTML = '<option value="">Select semester first</option>';
+        elements.subjectHelp.textContent = 'Choose semester to load subjects';
+        elements.subjectHelp.className = 'text-xs text-gray-500 mt-1 ml-1';
+        return;
+      }
+
+      await loadSubjects(selectedStreamData.name, semester);
+    }
+
+    async function loadSubjects(stream, semester) {
+      try {
+        elements.subjectLoader.classList.remove('hidden');
+        elements.subjectSelect.innerHTML = '<option value="">Loading...</option>';
+        elements.subjectHelp.textContent = 'Loading subjects...';
+        elements.subjectHelp.className = 'text-xs text-blue-600 mt-1 ml-1 font-medium';
+        
+        const response = await fetch(`/api/subjects/${stream}/sem${semester}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        
+        const data = await response.json();
+        const subjects = data.subjects || data || [];
+        
+        elements.subjectLoader.classList.add('hidden');
+        
+        if (!Array.isArray(subjects) || subjects.length === 0) {
+          elements.subjectSelect.innerHTML = '<option value="">No subjects found</option>';
+          elements.subjectHelp.textContent = 'No subjects available';
+          elements.subjectHelp.className = 'text-xs text-yellow-600 mt-1 ml-1 font-medium';
+          return;
+        }
+        
+        elements.subjectSelect.innerHTML = '<option value="">-- Select Subject --</option>';
+        subjects.forEach(subject => {
+          const subjectName = subject.subjectName || subject.name || subject;
+          const option = document.createElement('option');
+          option.value = subjectName;
+          option.textContent = subjectName;
+          if (subject.isLanguageSubject || subject.subjectType === 'LANGUAGE') {
+            option.textContent += ` (${subject.languageType})`;
+          }
+          elements.subjectSelect.appendChild(option);
+        });
+        
+        elements.subjectSelect.disabled = false;
+        elements.addBtn.disabled = false;
+        elements.subjectHelp.textContent = `${subjects.length} subjects available`;
+        elements.subjectHelp.className = 'text-xs text-green-600 mt-1 ml-1 font-medium';
+        
+      } catch (error) {
+        elements.subjectLoader.classList.add('hidden');
+        elements.subjectSelect.innerHTML = '<option value="">Error loading</option>';
+        elements.subjectHelp.textContent = 'Failed to load subjects';
+        elements.subjectHelp.className = 'text-xs text-red-500 mt-1 ml-1 font-medium';
+      }
+    }
+
+    async function handleAddToQueue(e) {
+      e.preventDefault();
+      
+      const stream = elements.selectedStream?.value;
+      const semester = elements.semesterSelect?.value;
+      const subject = elements.subjectSelect?.value;
+
+      if (!stream || !semester || !subject) {
+        showNotification('Please fill all fields', 'error');
+        return;
+      }
+
+      const duplicate = attendanceQueue.find(item => 
+        item.stream === stream && item.semester === semester && item.subject === subject
+      );
+
+      if (duplicate) {
+        showNotification('Class already in queue', 'warning');
+        return;
+      }
+
+      const queueItem = {
+        id: Date.now(),
+        stream,
+        semester,
+        subject,
+        timeAdded: new Date().toLocaleTimeString(),
+        dateAdded: new Date().toDateString(),
+        teacherId: userData.userName
+      };
+
+      attendanceQueue.push(queueItem);
+      await saveQueueToDatabase(attendanceQueue);
+
+      showNotification('Class added! 🎉', 'success');
+      resetForm();
+      
+      setTimeout(() => {
+        showHomePage();
+        updateQueueDisplay();
+      }, 1000);
+    }
+
+    async function takeAttendance(itemId) {
+      const item = attendanceQueue.find(q => q.id == itemId);
+      if (!item) return;
+
+      const classInfo = {
+        stream: item.stream,
+        semester: parseInt(item.semester),
+        subject: item.subject,
+        autoSelect: true
+      };
+      
+      const completedItem = { 
+        ...item, 
+        completedTime: new Date().toLocaleTimeString(),
+        completedDate: new Date().toDateString()
+      };
+      completedToday.push(completedItem);
+      
+      const queueElement = document.querySelector(`[data-id="${itemId}"]`);
+      if (queueElement) {
+        queueElement.classList.add('removing');
+        setTimeout(async () => {
+          attendanceQueue = attendanceQueue.filter(q => q.id != itemId);
+          await deleteQueueItemFromDatabase(itemId);
+          await saveQueueToDatabase(attendanceQueue);
+          updateQueueDisplay();
+        }, 400);
+      }
+      
+      sessionStorage.setItem('selectedClass', JSON.stringify(classInfo));
+      showNotification('Redirecting...', 'success');
+      
+      setTimeout(() => {
+        window.location.href = 'index.html';
+      }, 600);
+    }
+
+    async function removeFromQueue(itemId) {
+      const item = attendanceQueue.find(q => q.id == itemId);
+      if (!item) return;
+      
+      if (confirm(`Remove "${item.subject}"?`)) {
+        const queueElement = document.querySelector(`[data-id="${itemId}"]`);
+        if (queueElement) {
+          queueElement.classList.add('removing');
+          setTimeout(async () => {
+            attendanceQueue = attendanceQueue.filter(q => q.id != itemId);
+            await deleteQueueItemFromDatabase(itemId);
+            await saveQueueToDatabase(attendanceQueue);
+            updateQueueDisplay();
+            showNotification('Class removed', 'success');
+          }, 400);
+        }
+      }
+    }
+
+    function resetForm() {
+      // Reset stream selection
+      selectedStreamData = null;
+      elements.selectedStream.value = '';
+      
+      // Remove visual selection
+      document.querySelectorAll('.stream-container').forEach(card => {
+        card.classList.remove('ring-2', 'ring-offset-2');
+        const streamData = streams.find(s => s.name === card.dataset.stream);
+        if (streamData) {
+          card.classList.remove(`ring-${streamData.borderColor.split('-')[1]}-500`);
+        }
+      });
+      
+      document.querySelectorAll('[data-check]').forEach(check => {
+        check.classList.add('opacity-0');
+      });
+
+      // Reset selects
+      if (elements.semesterSelect) elements.semesterSelect.value = '';
+      if (elements.subjectSelect) {
+        elements.subjectSelect.innerHTML = '<option value="">Select stream & semester first</option>';
+        elements.subjectSelect.disabled = true;
+      }
+      if (elements.addBtn) elements.addBtn.disabled = true;
+      if (elements.subjectHelp) {
+        elements.subjectHelp.textContent = 'Choose stream and semester first';
+        elements.subjectHelp.className = 'text-xs text-gray-500 mt-1 ml-1';
+      }
+    }
+
+    function showNotification(message, type) {
+      const colors = {
+        success: 'from-green-500 to-green-600',
+        error: 'from-red-500 to-red-600',
+        warning: 'from-yellow-500 to-yellow-600'
+      };
+
+      const icons = {
+        success: 'check-circle',
+        error: 'exclamation-circle',
+        warning: 'exclamation-triangle'
+      };
+      
+      const notification = document.createElement('div');
+      notification.className = `fixed top-4 right-3 left-3 bg-gradient-to-r ${colors[type]} text-white p-3 rounded-xl shadow-xl z-50 transform transition-all duration-500 translate-y-full backdrop-blur-sm border border-white border-opacity-20`;
+      notification.innerHTML = `
+        <div class="flex items-center">
+          <i class="fas fa-${icons[type]} mr-2"></i>
+          <span class="font-semibold text-sm flex-1">${message}</span>
+        </div>
+      `;
+      
+      document.body.appendChild(notification);
+      
+      setTimeout(() => notification.classList.remove('translate-y-full'), 100);
+      setTimeout(() => {
+        notification.classList.add('translate-y-full');
+        setTimeout(() => {
+          if (document.body.contains(notification)) {
+            document.body.removeChild(notification);
+          }
+        }, 500);
+      }, 3000);
+    }
+  </script>
+</body>
+</html>
